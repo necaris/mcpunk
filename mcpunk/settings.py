@@ -9,8 +9,10 @@ class Settings(BaseSettings):
     # SQLite database path
     db_path: Path = Path("~/.mcpunk/db.sqlite").expanduser()
 
-    # Enable SQLAlchemy query logging
-    db_echo: bool = True
+    # I believe that MCP clients should not look at stderr, but it seems some do
+    # which completely messes with things. Suggest leaving this off and relying
+    # on the log *file* instead.
+    enable_stderr_logging: bool = False
 
     enable_log_file: bool = True
     log_file: Path = Path("~/.mcpunk/mcpunk.log").expanduser()
