@@ -382,12 +382,20 @@ def chunk_details(
     2. Examining implementations after finding definitions/uses
     """
     target_file = proj_file.file
-    chunks = [chunk for chunk in target_file.chunks if chunk.id_ == chunk_id]
-    if len(chunks) == 0:
+    chunks_raw = [chunk for chunk in target_file.chunks if chunk.id_ == chunk_id]
+    chunk_contents = [inspect.cleandoc(x.content) for x in chunks_raw]
+    if len(chunk_contents) == 0:
         return MCPToolOutput(
-            text=("No matching chunks. Please use other tools to find available chunks."),
+            text="No matching chunks. Please use other tools to find available chunks.",
         ).render()
-    return MCPToolOutput(jsonable=[x.content for x in chunks]).render()
+    elif len(chunk_contents) == 1:
+        return MCPToolOutput(text=chunk_contents[0]).render()
+    else:
+        # Honestly should perhaps just raise here 🤷
+        resp = "WARNING MULTIPLE CHUNKS FOUND THIS IS VERY ODD"
+        for i, chunk_content in enumerate(chunk_contents):
+            resp += f"\n\n# Chunk {i + 1}{chunk_content}"
+        return MCPToolOutput(text=resp).render()
 
 
 @mcp.tool()
@@ -398,7 +406,7 @@ def list_most_recently_checked_out_branches(
 ) -> ToolResponse:
     """List the n most recently checked out branches in the project"""
     project = _get_project_or_error(project_name)
-    return MCPToolOutput(jsonable=get_recent_branches(project.git_path, n)).render()
+    return MCPToolOutput(text="\n".join(get_recent_branches(project.git_path, n))).render()
 
 
 @mcp.tool()
@@ -423,9 +431,9 @@ def diff_with_ref(
         f"{ref}...HEAD",
         ignore_blank_lines=True,
         ignore_space_at_eol=True,
-    )  # create_patch=True)
+    )
     return MCPToolOutput(
-        jsonable=diff,
+        text=diff,
         max_chars=deps.settings().default_git_diff_response_max_chars,
     ).render()
 
@@ -534,21 +542,10 @@ def _list_chunks_in_file(
 ) -> MCPToolOutput:
     target_file = proj_file.file
     chunks = [x for x in target_file.chunks if x.matches_filter(filter_, filter_on)]
-    resp_data = [
-        {
-            "n": x.name,
-            "t": x.category,
-            "id": x.id_,
-            "chars": len(x.content),
-        }
-        for x in chunks
-    ]
-    return MCPToolOutput(
-        jsonable=[
-            f"({len(chunks)} of {len(target_file.chunks)} chunks)",
-            resp_data,
-        ],
-    )
+    resp_data = [f"id={x.id_} (category={x.category} chars={len(x.content)})" for x in chunks]
+    resp_text = "\n".join(resp_data)
+    chunk_info = f"({len(chunks)} of {len(target_file.chunks)} chunks)"
+    return MCPToolOutput(text=f"{chunk_info}\n{resp_text}")
 
 
 def _filter_files_by_chunk(
