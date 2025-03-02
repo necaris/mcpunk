@@ -259,6 +259,7 @@ def configure_project(
         chunk_project=FileBreakdownProject(
             root=path,
             file_watch_refresh_freq_seconds=deps.settings().file_watch_refresh_freq_seconds,
+            max_chunk_size=deps.settings().max_chunk_size,
         ),
     )
     PROJECTS[project_name] = project
@@ -372,7 +373,8 @@ def find_matching_chunks_in_file(
       - Finding a chunk where a specific function is defined
         (e.g. find_matching_chunks_in_file(..., ["def my_funk"])
 
-    Returns array of {n: name, t: type, id: identifier, chars: length}
+    Some chunks are split into multiple parts, because they are too large. This
+    will look like 'chunkx_part1', 'chunkx_part2', ...
     """
     proj_file = ProjectFile(project_name=project_name, rel_path=rel_path)
     return _list_chunks_in_file(proj_file, filter_, "name_or_content").render()
