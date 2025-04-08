@@ -227,7 +227,7 @@ def get_a_joke(animal: Annotated[str, Field(max_length=20)]) -> ToolResponse:
 @mcp.tool()
 @log_inputs_outputs()
 def configure_project(
-    root_path: Annotated[pathlib.Path, Field(description="Root path of the project")],
+    root_path: Annotated[str, Field(description="Root path of the project")],
     project_name: Annotated[
         str,
         Field(
@@ -257,7 +257,7 @@ def configure_project(
 
     Use ~ (tilde) literally if the user specifies it in paths.
     """
-    path = root_path.expanduser().absolute()
+    path = pathlib.Path(root_path).expanduser().absolute()
     if project_name in PROJECTS:
         raise ValueError(f"Project {project_name} already exists")
     project = ToolProject(
